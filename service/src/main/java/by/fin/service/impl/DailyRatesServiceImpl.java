@@ -45,14 +45,18 @@ public class DailyRatesServiceImpl implements DailyRatesService {
 		Currency currency = validationCurrency(ratesDto.currency());
 		validationDates(ratesDto.startDate(), ratesDto.endDate());
 		CurrencyDto[] currencyRaw = getCurrencyRaw(currency.getCurId(), ratesDto.startDate(), ratesDto.endDate());
+		List<DailyExchangeRateDto> byBetween = dailyExchangeRateRepository.findByCurrencyAndDateBetween(
+				ratesDto.currency(), ratesDto.startDate(), ratesDto.endDate());
 		List<DailyExchangeRateDto> daily = new ArrayList<>();
 		for (CurrencyDto currencyDto : Objects.requireNonNull(currencyRaw)) {
 			daily.add(new DailyExchangeRateDto(ratesDto.currency(), currency.getCurScale(), currencyDto.Date(),
 					currencyDto.Cur_OfficialRate()));
 		}
 		for (DailyExchangeRateDto dailyExchangeRateDto : daily) {
-			dailyExchangeRateRepository.save(Objects.requireNonNull(conversionService.convert(dailyExchangeRateDto,
-					DailyExchangeRate.class)));
+			if (!byBetween.contains(dailyExchangeRateDto)) {
+				dailyExchangeRateRepository.save(Objects.requireNonNull(conversionService.convert(dailyExchangeRateDto,
+						DailyExchangeRate.class)));
+			}
 		}
 		return daily;
 	}
@@ -61,9 +65,9 @@ public class DailyRatesServiceImpl implements DailyRatesService {
 	@ReadOnlyProperty
 	public List<DailyExchangeRateDto> getRates(String currency) {
 		validationCurrency(currency);
-		if (!dailyExchangeRateRepository.existsBycurrency(currency))
+		if (!dailyExchangeRateRepository.existsByCurrency(currency))
 			throw new IllegalArgumentException("The requested currency is not in the database");
-		return dailyExchangeRateRepository.findBycurrency(currency);
+		return dailyExchangeRateRepository.findByCurrency(currency);
 	}
 
 	@Override
